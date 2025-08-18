@@ -1,0 +1,15 @@
+name: drought
+channels:
+  - conda-forge
+  - bioconda
+  - base
+  - R
+dependencies:
+  - snakemake=9.9.0
+  - r-base=4.4.3
+  - r-tidyverse=2.0.0
+  - r-magrittr=2.0.3 
+  - quarto=1.7.33
+  - wget=1.21.4
+  - graphviz=13.1.2  # Added for DAG visualization; errors out often at installation
+  - r-archive=1.1.9  # work with one file at a time from a .tar.gz archive

@@ -1,0 +1,367 @@
+---
+title: '9_read_dly_files_all'
+date: "13.Aug.2025"
+date-modified: "today"
+date-format: "DD.MMM.YYYY"
+execute:
+  echo: true
+  warning: false
+  #message: false
+
+from: markdown+emoji
+categories: [snakemake, process_a_file_at_a_time]
+toc: true
+toc-title: "Index"
+smooth-scroll: true
+toc-depth: 3
+#fig-dpi: 300
+format:
+  html:
+    embed-resources: true
+    df-print: kable
+    page-layout: full
+    #code-overflow: wrap
+    fig-width: 8
+    fig-height: 6
+code-line-numbers: true
+number-sections: true
+## to wrap output
+include-in-header:
+  - text: |
+      <style>
+      .cell-output-stdout code {
+        word-break: break-wor !important;
+        white-space: pre-wrap !important;
+      }
+      </style>
+---
+
+```{r}
+#| label: setup
+#| echo: false
+
+all_times <- list()  # store the time for each chunk
+
+knitr::knit_hooks$set(time_it = local({
+  now <- NULL
+  function(before, options) {
+    if (before) {
+      now <<- Sys.time()
+    } else {
+      res <- difftime(Sys.time(), now, units = "mins")
+      all_times[[options$label]] <<- res
+    }
+  }
+})
+)
+
+knitr::opts_chunk$set(
+  # don't use, has issues with a lot of symbols
+  # https://yihui.org/formatr/
+  #tidy = TRUE,
+  time_it = TRUE,
+  fig.align = 'center',
+  highlight = TRUE, 
+  cache.lazy = FALSE,
+  #comment = "#>",
+  collapse = TRUE
+)
+
+## to crop the empty white space around the pdf plots
+knitr::knit_hooks$set(crop = knitr::hook_pdfcrop)
+```
+
+```{r}
+#| label: libraries_packages
+#| output: false
+
+## conda env: ./env_tar/smk_env1/
+
+x <- c("tidyverse", "magrittr",
+       "archive")
+
+## Load libraries
+invisible(lapply(x, library, character.only = TRUE))
+```
+
+
+This analysis is focused on loading weather data correctly from fixed-width formatted file, not a regular format such as TSV or CSV.
+
+First part looks at working with a fully unzipped archive, while the second works with one file at a time without unzipping the archive at all.
+
+# load one unzipped fwf file
+
+Extract necessary info to load one file correctly. The files we want to load are a specific case of loading a fixed-width formatted file, not a TSV, nor a CSV. 
+
+## extract correct parameters for loading
+
+```{r}
+#| label: load_metadata
+
+## what each column from the files means - find it in the "annotations/readme.txt"
+# wget -nc https://www.ncei.noaa.gov/pub/data/ghcn/daily/readme.txt -P annotations/
+
+lines <- "Variable   Columns   Type
+ID            1-11   Character
+YEAR         12-15   Integer
+MONTH        16-17   Integer
+ELEMENT      18-21   Character
+VALUE1       22-26   Integer
+MFLAG1       27-27   Character
+QFLAG1       28-28   Character
+SFLAG1       29-29   Character
+VALUE2       30-34   Integer
+MFLAG2       35-35   Character
+QFLAG2       36-36   Character
+SFLAG2       37-37   Character
+  .           .          .
+  .           .          .
+  .           .          .
+VALUE31    262-266   Integer
+MFLAG31    267-267   Character
+QFLAG31    268-268   Character
+SFLAG31    269-269   Character"
+con <- textConnection(lines)
+meta.tsv <- read.delim(con)
+close(con)
+meta.tsv 
+
+## loaded as dataframe with only 1 column
+## split into 3 columns by multiple whitespaces and name colunms
+meta.tsv <- meta.tsv %>%  
+  separate(col = colnames(meta.tsv), into = c("variable", "columns", "type"), sep = "\\s+")
+meta.tsv %>% head()
+
+## the dots mean that you have a repeating pattern of 4 rows ("VALUE", "MFLAG", "QFLAG", "SFLAG") 
+## that repeats 31 times (so you have the value of c(5,1,1,1,) repeating 31 times)
+## so we can rebuild the "width" vector we need by separating it from the dataframe
+meta.tsv %>% 
+  slice(12:17)
+meta_with_widths <- meta.tsv %>% 
+  filter(c(variable %in% c("ID", "YEAR", "MONTH", "ELEMENT", "VALUE1", "MFLAG1", "QFLAG1", "SFLAG1"))) %>% 
+  ## split middle column and convert them to numeric
+  separate(col = "columns", into = c("start", "end"), sep = "-", convert = T, remove = F) %>% 
+  ## if variable has no name, set as "rep"
+  ## calculate nr of spaces
+  mutate(width = end - start +1) 
+meta_with_widths %>% 
+  head()
+
+## rebuild the "widths" vector - add the repeat 30 more times -> 31 repeats
+widths <- meta_with_widths %>% 
+  pull(width) %>% 
+  append(., rep(tail(., n = 4), 30) )
+head(widths)
+length(widths)
+
+## should have 269 rows
+sum(widths)
+
+## rebuild the name vector from the "variable" column - add the repeat 30 more times -> 31 repeats
+variable_quad_repeats <- meta_with_widths %>% 
+  pull(variable) %>% 
+  tail(., n = 4) %>% 
+  gsub(".{1}$", "", .)
+
+headers <- meta_with_widths %>% 
+  pull(variable) %>% 
+  append(., paste0(variable_quad_repeats, 
+                   rep(seq(2,31,1), each = 4 )   ) )
+head(headers)
+length(headers)
+```
+
+Use the created vectors to correctly load one file.
+
+```{r}
+#| label: check_data_before_load
+
+tst <- read_fwf("../data/ghcnd_all/ASN00008255.dly",   # just this part of the function still loads the file incorrectly
+         col_positions = fwf_widths(widths, headers),  # helps load correctly
+         na = c("NA", "-9999") )                       # missing data is noted with "-9999" and "NA"
+head(tst)
+problems(tst) %>% head()
+
+## the columns are not loaded correctly as a type 
+## (the quad columns with missing values are loaded as lgl = logical, instead of character or value)
+## also only interested in a handful of columns
+read_fwf("../data/ghcnd_all/ASN00008255.dly",      
+         col_positions = fwf_widths(widths, headers),
+         na = c("NA", "-9999"),
+         ## correct column types
+         col_types = cols(.default = col_character()),
+         ## columns of interest to keep
+         col_select = c(ID, YEAR, MONTH, ELEMENT, starts_with("VALUE")) ) %>% 
+  head()
+```
+
+
+# load all the unzipped files
+
+```{r}
+#| label: load_data
+
+## if you could load data from all the files in the unzipped archive dir:
+dly_files_path <- list.files("../data/ghcnd_all/", full.names = T)
+head(dly_files_path)
+
+## how many rows read from each file:
+read_fwf(dly_files_path,
+         col_positions = fwf_widths(widths, headers),   
+         na = c("NA", "-9999"),
+         col_types = cols(.default = col_character()),
+         col_select = c(ID, YEAR, MONTH, ELEMENT, starts_with("VALUE")) ) %>% 
+  count(ID) 
+
+data_in <- read_fwf(dly_files_path,
+         col_positions = fwf_widths(widths, headers),   
+         na = c("NA", "-9999"),
+         col_types = cols(.default = col_character()),
+         col_select = c(ID, YEAR, MONTH, ELEMENT, starts_with("VALUE")) ) %>% 
+  rename_all(tolower) %>% 
+  ## get only precipitation data (PRCP)
+  filter(element == "PRCP") %>% 
+  ## col not needed anymore
+  select(-element)
+head(data_in)
+```
+
+## process the files
+
+```{r}
+#| label: data_process
+
+## process the data to make it easier to understand and to plot
+## pivot from wide to long format by merging the "value" columns
+preproc_data <- data_in %>% 
+  pivot_longer(cols = starts_with("value"),
+               names_to = "day",
+               values_to = "prcp") %>% 
+  ## drop na otherwise you'll get a "failed to parse" error
+  drop_na() %>% 
+  ## the final goal is to convert the 3 date columns into one
+  ## first convert "day" column to actual days
+  mutate(day = str_replace(day, "value", ""),
+         date = ymd(paste0(year, "-", month, "-", day)),
+         ## make "prcp" column a number to process it further
+         ## "prcp" is in "tenths of mm" -> SI is in cm
+         prcp = as.numeric(prcp)/100) %>% 
+  ## remove unwanted columns
+  select(id, date, prcp) 
+
+preproc_data %>% head()
+
+preproc_data %>% 
+  write_tsv("../data/composite_dly.tsv")
+```
+
+
+# load one fwf file at a time from zipped archive
+
+## practice
+
+```{r}
+#| label: check_archive
+
+## to describe the procedure, create a smaller archive and work with it
+archive_write_dir(archive = "../data/write_dir.tar.gz",
+                  dir = "../data/ghcnd_all/")
+
+## to read from an archive, you establish a connection 
+## and then save info out of it
+## e.g. read one file out of it
+con <- archive_read(archive = "../data/write_dir.tar.gz", 
+                    file = "ASN00040510.dly")
+read_tsv(con) %>% head(n=3)
+
+## read in the information from the archive
+## file title, path, size, etc
+archive("../data/write_dir.tar.gz") %>% 
+  ## only interested in the path of the file (it also contains the name?)
+  pull(path) %>% 
+  ## read every file using that path list from the archive
+  #map_dfr(., ~read_tsv(archive_read("../data/write_dir.tar.gz", .x)))
+  ## superseded by:
+  map(., ~read_tsv(archive_read("../data/write_dir.tar.gz", .x))) %>% list_rbind() %>% 
+  head(n=3)
+```
+
+## extract a file at a time from archive
+
+```{r}
+#| label: code_extraction_only_5_files
+dly_files <- archive("../data/ghcnd_all.tar.gz") %>% 
+  ## remove files that are not "*.dly" (usually the path to the initial dir)
+  filter(str_detect(path, "dly")) %>% 
+  ## for testing purposes, choose 5 randomly chosen files
+  ## REMOVE THIS IN PRODUCTION
+  slice_sample(n = 5) %>% 
+  pull(path) 
+
+head(dly_files)
+
+## use the initial functions to correctly read the fwf files
+## without processing
+
+## How long would this take?
+strt <- Sys.time()
+new_data_in <- dly_files %>% 
+  map(., ~read_fwf(archive_read("../data/ghcnd_all.tar.gz", .x),
+         col_positions = fwf_widths(widths, headers),   
+         na = c("NA", "-9999"),
+         col_types = cols(.default = col_character()),
+         col_select = c(ID, YEAR, MONTH, ELEMENT, starts_with("VALUE")) ) ) %>% list_rbind()
+difftime(Sys.time(), strt, units = "mins")
+head(new_data_in, n = 5)
+
+## how many rows in each file
+new_data_in %>% 
+  count(ID)
+```
+
+
+# improve on previous code
+
+With script '8_concatenate_dly.sh', we eliminate the need to open one file at a time and the filtering step.
+
+
+
+```{r}
+#| label: code_extraction_only_5_files
+
+## now we can read directly from the tar file, which is also smaller
+read_fwf("../data/ghcnd_concat.out.gz",
+         col_positions = fwf_widths(widths, headers),   
+         na = c("NA", "-9999"),
+         col_types = cols(.default = col_character()),
+         col_select = c(ID, YEAR, MONTH, ELEMENT, starts_with("VALUE")) ) %>%
+    rename_all(tolower) %>%
+    filter(element == "PRCP") %>% 
+    select(-element) %>%
+    pivot_longer(cols = starts_with("value"),
+        names_to = "day",
+        values_to = "prcp") %>% 
+    drop_na() %>% 
+    mutate(day = str_replace(day, "value", ""),
+         date = ymd(paste0(year, "-", month, "-", day)),
+         prcp = as.numeric(prcp)/100) %>% 
+    select(id, date, prcp) %>% 
+    write_tsv("../data/composite_dly.tsv")
+```
+
+
+# Save time
+
+```{r}
+#| label: save_times
+
+t(as.data.frame(all_times))
+```
+
+# Session information
+
+```{r}
+#| label: sessionInfo
+
+sessionInfo()
+```
