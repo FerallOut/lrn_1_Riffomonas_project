@@ -1,5 +1,5 @@
 ---
-title: '12_merge_weather_stations_data'
+title: '12_merge_weather_regions_data'
 date: "18.Aug.2025"
 date-modified: "today"
 date-format: "DD.MMM.YYYY"
@@ -92,7 +92,7 @@ prcp_data <- read_tsv("../data/9_ghcnd_tidy.tsv.gz") %T>%
   {head(.) %>% print()} %T>%
   {dim(.) %>% print()} 
 
-station_data <- read_tsv("../data/11_ghcnd_regions_years.tsv") %T>% 
+region_data <- read_tsv("../data/11_ghcnd_regions_years.tsv") %T>% 
   {head(.) %>% print()} %T>%
   {dim(.) %>% print()} 
 ```
@@ -101,22 +101,22 @@ station_data <- read_tsv("../data/11_ghcnd_regions_years.tsv") %T>%
 
 ```{r}
 inner_join(prcp_data, 
-           station_data,
+           region_data,
            by = "id") %T>%
   {head(.) %>% print()}
 
 ## what about the data without correspondence?
 
-## values in "prcp_data" not in "station_data"
+## values in "prcp_data" not in "region_data"
 anti_join(prcp_data, 
-          station_data,
+          region_data,
           by = "id") %T>% 
   {head(.) %>% print()} %>%
   {dim(.) %>% print()} 
-## very few missing data for those stations (3 out of 3.269.055)
+## very few missing data for those regions (3 out of 3.269.055)
 
-## values in "station_data" not in "prcp_data"
-anti_join(station_data,
+## values in "region_data" not in "prcp_data"
+anti_join(region_data,
           prcp_data,
           by = "id") %T>% 
   {head(.) %>% print()} %>%
@@ -132,11 +132,11 @@ anti_join(station_data,
 Remove partial data (where the year is not whole)
 
 ```{r}
-## remove stations where you have partial data BUT keep the last year you have on record
+## remove regions where you have partial data BUT keep the last year you have on record
 
 ## what is the last year?
 last_yr <- inner_join(prcp_data, 
-           station_data,
+           region_data,
            by = "id") %>%  
   arrange(desc(year)) %>% 
   slice_head(n=1) %>% 
@@ -144,7 +144,7 @@ last_yr <- inner_join(prcp_data,
 
 
 lat_log_prcp <- inner_join(prcp_data, 
-           station_data,
+           region_data,
            by = "id") %T>% 
   {head(.) %>% print()} %T>%
   {dim(.) %>% print()} %>% 
@@ -155,8 +155,9 @@ lat_log_prcp <- inner_join(prcp_data,
   group_by(latitude, longitude, year) %>% 
   summarize(mean_prcp = mean(prcp)) %T>%
   {head(.) %>% print()} %T>%
-  {dim(.) %>% print()} %>% 
+  dim() 
   
+lat_log_prcp %>% 
   ## from how many locations do we have data?
   summarize(n = n()) %T>%
   {head(.) %>% print()} %T>%
@@ -171,24 +172,74 @@ There is a bimodal distribution
 
 ```{r}
 lat_log_prcp %>% 
+  ## from how many locations do we have data?
+  summarize(n = n()) %>% 
   ggplot(aes(x=n)) + 
   geom_histogram()
 ```
 
-##
-
 ```{r}
 
-## how many stations with more than 100 observations
+## how many regions with more than 100 observations
 lat_log_prcp %>% 
+  summarize(n = n()) %>% 
   filter(n >= 100) %T>%
   {head(.) %>% print()} %>% 
   dim()
-
 ```
 
 
-## synthesize the distribution of the data for each weather station
+# calculate the Z-score statistics for each region for 2025
+
+You need the mean and stdev, and to make sure to keep all the regions with precipitation data for 2025.
+
+## get 2025 (last year's) precipitation and that of all years
+
+```{r}
+## get regions (lat + long) that have data for 2025
+this_year <- lat_log_prcp %>% 
+  filter(year == last_yr) %>% 
+  select(-year)
+
+inner_join(lat_log_prcp, 
+           this_year,
+           by = c("latitude", "longitude") ) %>% 
+  rename(all_years = mean_prcp.x,
+         year_2025 = mean_prcp.y) %>% 
+  head()
+
+# didn't check further
+# anti_join(lat_log_prcp, 
+#            this_year,
+#            by = c("latitude", "longitude") )
+# 
+# anti_join(this_year,
+#            lat_log_prcp, 
+#            by = c("latitude", "longitude") )
+```
+
+## get Z-score
+
+```{r}
+inner_join(lat_log_prcp, 
+           this_year,
+           by = c("latitude", "longitude") ) %>% 
+  rename(all_years = mean_prcp.x,
+         year_2025 = mean_prcp.y) %>% 
+  group_by(latitude, longitude) %>% 
+  mutate(nr_of_years = n()) %T>%
+  {head(.) %>% print()} %>% 
+  
+  ## each region has various years
+  ## set threshold for e.g. 20 years
+  ## play around with the threshold
+  filter(nr_of_years >= 50) %>% 
+  #mutate(z_score = (min(this_year) - mean(all_years))/sd(all_years))
+  ##use summarize instead - why?
+  summarize(z_score = (last_yr - mean(all_years))/sd(all_years),
+            .groups = "drop")
+
+```
 
 
 # Save time
