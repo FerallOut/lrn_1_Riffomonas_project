@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.553">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>notes_log</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="notes_log_files/libs/clipboard/clipboard.min.js"></script>
+<script src="notes_log_files/libs/quarto-html/quarto.js"></script>
+<script src="notes_log_files/libs/quarto-html/popper.min.js"></script>
+<script src="notes_log_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="notes_log_files/libs/quarto-html/anchor.min.js"></script>
+<link href="notes_log_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="notes_log_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="notes_log_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="notes_log_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="notes_log_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+
+
+
+<section id="first-snakemake-tutorial" class="level1">
+<h1>2025-08-13 10:12 - first snakemake tutorial</h1>
+<p>This project is to create a snakemake worflow that is then deployed using GitHub Actions.</p>
+<p>The available hardware specs for Linux virtual machines are: - 2 core CPUs - 7 GB RAM - 14 GB of SSD space</p>
+<p>Therefore some parts of the pipeline can be used for other use cases, as long as you then remove the constraints. The projects starts by addressing the space constraints (2-9), then RAM constraints (10), and then the cores.</p>
+<section id="create-project-structure" class="level2">
+<h2 class="anchored" data-anchor-id="create-project-structure">1. Create project structure</h2>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> 1_smk/</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">1_snakemake_intro_youtube_CC248/</span><span class="dt">{annotations</span><span class="op">,</span><span class="dt">data</span><span class="op">,</span><span class="dt">docs</span><span class="op">,</span><span class="dt">envs</span><span class="op">,</span><span class="dt">env_tar</span><span class="op">,</span><span class="dt">results</span><span class="op">,</span><span class="dt">scripts}</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> 1_smk/1_snakemake_intro_youtube_CC248</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Download annotations from the readme file separately</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">wget</span> <span class="at">-nc</span> https://www.ncei.noaa.gov/pub/data/ghcn/daily/readme.txt <span class="at">-P</span> annotations/</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="create-and-activate-a-new-conda-environment-with-mamba" class="level2">
+<h2 class="anchored" data-anchor-id="create-and-activate-a-new-conda-environment-with-mamba">2. Create and activate a new conda environment with mamba</h2>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">vim</span> envs/smk_env1.yaml</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">## either of:</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">mamba</span> env create <span class="at">--name</span> smk_env1 <span class="at">--file</span> envs/smk_env1.yaml</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">mamba</span> env create <span class="at">-p</span> env_tar/smk_env1 <span class="at">--file</span> envs/smk_env1.yaml</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate env_tar/smk_env1</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">## as you go installing packages,</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">## add the version to the yaml file</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">## to look at a specific package version:</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> list <span class="kw">|</span> <span class="fu">grep</span> <span class="st">"snakemake"</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="find-the-locations-of-the-files-you-want-to-download" class="level2">
+<h2 class="anchored" data-anchor-id="find-the-locations-of-the-files-you-want-to-download">3. find the locations of the files you want to download</h2>
+<ul>
+<li>https://www.ncei.noaa.gov/data/global-historical-climatology-network-daily/access/</li>
+<li>right-click on the file you want to download to copy the link address</li>
+</ul>
+</section>
+<section id="write-each-script-and-make-them-executable" class="level2">
+<h2 class="anchored" data-anchor-id="write-each-script-and-make-them-executable">4. write each script and make them executable</h2>
+<section id="a.-create-the-download-scripts" class="level3">
+<h3 class="anchored" data-anchor-id="a.-create-the-download-scripts">4.A. create the download scripts</h3>
+<ul>
+<li><p>scripts/1_get_ghcnd_all.sh</p></li>
+<li><p>scripts/2_get_ghcnd_all_stations.sh</p></li>
+<li><p>scripts/3_get_ghcnd_inventory.sh</p></li>
+<li><p>make the scripts executable</p></li>
+</ul>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> +x scripts/get_ghcnd_data.sh</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li>OBS: if you want to run the scripts manually, you can run them like this:</li>
+</ul>
+<div class="sourceCode" id="cb5"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a> <span class="co">## started in the background and run sequentially:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="kw">{</span> <span class="fu">sleep</span> 2<span class="kw">;</span> <span class="fu">sleep</span> 3<span class="kw">;</span> <span class="kw">}</span> <span class="kw">&amp;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">## run the second only if first succeeds:</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="fu">sleep</span> 2 <span class="kw">&amp;&amp;</span> <span class="fu">sleep</span> 3 <span class="kw">&amp;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">## run in parallel in the background:</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="fu">sleep</span> 2 <span class="kw">&amp;</span> <span class="fu">sleep</span> 3 <span class="kw">&amp;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">## And the two techniques could be combined:</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="kw">{</span> <span class="fu">sleep</span> 2<span class="kw">;</span> <span class="bu">echo</span> first finished<span class="kw">;</span> <span class="kw">}</span> <span class="kw">&amp;</span> <span class="kw">{</span> <span class="fu">sleep</span> 3<span class="kw">;</span> <span class="bu">echo</span> second finished<span class="kw">;</span> <span class="kw">}</span> <span class="kw">&amp;</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="b.-reuse-one-script-for-all-downloads" class="level3">
+<h3 class="anchored" data-anchor-id="b.-reuse-one-script-for-all-downloads">4.B. reuse one script for all downloads</h3>
+<p>Since for the previous 3 scripts the only difference was the name of the script to download but the path was always the same, we can use the same script to download all the files - scripts/4_get_ghcnd_data.sh</p>
+<p>To run it, after making it executable:</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/4_get_ghcnd_data.sh</span> ghcnd_all.tar.gz</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/4_get_ghcnd_data.sh</span> ghcnd-inventory.txt</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">scripts/4_get_ghcnd_data.sh</span> ghcnd-stations.txt</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>But, to automate it further, create a driver script that will run all the previous scripts in order: - scripts/5_driver.sh</p>
+<p>Obs: because of how the driver script is written, it can only be run from the parent directory of the “scripts” directory</p>
+<p>You can now remove scripts 1-3 because they are no longer needed.</p>
+</section>
+</section>
+<section id="list-all-files-in-the-archive" class="level2">
+<h2 class="anchored" data-anchor-id="list-all-files-in-the-archive">5. List all files in the archive</h2>
+<ul>
+<li>scripts/6_get_ghcnd_all_files.sh</li>
+</ul>
+<p>Add the code to the driver script (scripts/5_driver.sh)</p>
+</section>
+<section id="create-the-snakefile" class="level2">
+<h2 class="anchored" data-anchor-id="create-the-snakefile">6. Create the Snakefile</h2>
+<ul>
+<li>Snakefile</li>
+</ul>
+<p>This file will replace “scripts/5_driver.sh”, and at the end it can be deleted</p>
+<section id="a.-write-each-rule-and-verify-it-works" class="level3">
+<h3 class="anchored" data-anchor-id="a.-write-each-rule-and-verify-it-works">6.A. Write each rule and verify it works</h3>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">## activating the conda env is optional</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">## if you don't, then just mention it on the command line below</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate env_tar/smk_env1</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">## dry run to test the "get_all_archive" rule</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">## either</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ex">snakemake</span> <span class="at">--dry-run</span> <span class="at">--cores</span> 1 <span class="at">--use-conda</span> <span class="at">--conda-prefix</span> env_tar/smk get_all_archive</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="ex">snakemake</span> <span class="at">-np</span> <span class="at">--cores</span> 1 <span class="at">--use-conda</span> <span class="at">--conda-prefix</span> env_tar/smk_env1 get_all_archive</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="b.-run-all-the-rules-in-the-snakefile" class="level3">
+<h3 class="anchored" data-anchor-id="b.-run-all-the-rules-in-the-snakefile">6.B. Run all the rules in the Snakefile</h3>
+<p>If you don’t mention the name of the rule, it runs only the first one. To run all the rules, you need to create a “target” or “all” rule, and add it as the first rule in the Snakefile.</p>
+<p>The input for the “all” rule are the outputs of the other rules, so it will run all the rules in order.</p>
+<p>Now run snakemake again.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">snakemake</span> <span class="at">--cores</span> 1 <span class="at">--use-conda</span> <span class="at">--conda-prefix</span> env_tar/smk_env1</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+</section>
+<section id="visualize-the-dag" class="level2">
+<h2 class="anchored" data-anchor-id="visualize-the-dag">7. Visualize the DAG</h2>
+<p>You can visualize the DAG of any rule, including the “targets/all” rule. Need “graphviz” installed in the conda environment. It doesn’t run the rules.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">#snakemake --dag &lt;target_rule&gt; | dot -Tsvg &gt; dag_&lt;rule_name&gt;.svg</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">snakemake</span> <span class="at">--dag</span> all <span class="at">--cores</span> 1 <span class="at">--use-conda</span> <span class="at">--conda-prefix</span> env_tar/smk_env1 <span class="kw">|</span> <span class="ex">dot</span> <span class="at">-Tpng</span> <span class="op">&gt;</span> results/dag_all.png</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ex">snakemake</span> <span class="at">--dag</span> get_all_file_names <span class="at">--cores</span> 1 <span class="at">--use-conda</span> <span class="at">--conda-prefix</span> env_tar/smk_env1 <span class="kw">|</span> <span class="ex">dot</span> <span class="at">-Tpng</span> <span class="op">&gt;</span> results/dag_get_all_file_names.png</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+<section id="clean-up" class="level2">
+<h2 class="anchored" data-anchor-id="clean-up">8. Clean up</h2>
+<p>You can delete the scripts 1-3 and 5 and only run the Snakefile to get all the data you need.</p>
+</section>
+<section id="add-r-scripts-to-snakemake" class="level2">
+<h2 class="anchored" data-anchor-id="add-r-scripts-to-snakemake">9. Add R scripts to Snakemake</h2>
+<section id="a.-create-a-script-to-process-a-small-nr-of-files" class="level3">
+<h3 class="anchored" data-anchor-id="a.-create-a-script-to-process-a-small-nr-of-files">9.A. create a script to process a small nr of files</h3>
+<ul>
+<li>scripts/7_read_dly_files.qmd - 1st and 2nd portion of the script</li>
+</ul>
+<p>The goal is to learn how to read in only first 3 files from the archive we have downloaded and then to expand this analysis to all files</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">## extract to "data" dir only these 3 files</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">tar</span> <span class="at">-xvzf</span> data/ghcnd_all.tar.gz <span class="at">-C</span> data/ ghcnd_all/ASN00017066.dly ghcnd_all/ASN00040510.dly ghcnd_all/ASN00008255.dly</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Process the data from those 3 files</p>
+</section>
+<section id="b.-work-with-one-file-at-a-time" class="level3">
+<h3 class="anchored" data-anchor-id="b.-work-with-one-file-at-a-time">9.B. work with one file at a time</h3>
+<p>This is necessary if you are under space constraints, such as when you are relying on github Actions to download and then extract data. For GitHub Actions the space is limited to 14 GB (?), so expanding a large archive is out of the question. - scripts/7_read_dly_files_all.qmd - 3rd portion of the script</p>
+<p>Also, running through more than 100.000 files will take a very long time in this way. GitHub Actions allows you to use up to 3 processors. Still this would take too long.</p>
+<p>So, use this file if you don’t have space/CPU constraints, otherwise use the next script.</p>
+</section>
+</section>
+<section id="ways-to-deal-with-memory-issues" class="level2">
+<h2 class="anchored" data-anchor-id="ways-to-deal-with-memory-issues">10. ways to deal with memory issues</h2>
+<p>When checking “htop”, this script used more than 22.7 GB. Since GitHub Actions allows only 14GB, we need a work around</p>
+<p>Ways to go around this block: - reduce size of the input file - chunk parts of the analysis - instead of doing conversions on all 100.000 files, do it on e.g.&nbsp;100 at a time - remove up front useless data - a lot of the data in these files is zero, and it is not needed, it can be removed to facilitate computation</p>
+<section id="a.-read-in-the-archive-filter-and-rezip" class="level3">
+<h3 class="anchored" data-anchor-id="a.-read-in-the-archive-filter-and-rezip">10.A. read in the archive, filter and rezip</h3>
+<p>In bash you can use “split” to chunk the input archive that has 100.000 files and can choose to filter the files in the process, further reducing the overall size of the input.</p>
+<p>Try to create one concatenated file with all the necessary data.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">## x - extract </span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">## v - verbose</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">## z - compress to gzip</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">## f - file name = location of file</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">## extract a particular file from the archive to another location</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="fu">tar</span> <span class="at">-xvzf</span> ../data/ghcnd_all.tar.gz ghcnd_all/ASN00017066.dly</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co">## c - create a new archive</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co">## create a new archive from all the files in the ghcnd_all directory</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="fu">tar</span> <span class="at">-cvzf</span> ../data/practice.tar.gz ../data/ghcnd_all/</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="co">## t - list contents of archive</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="co">## list contents of archive</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="fu">tar</span> <span class="at">-tvf</span> ../data/practice.tar.gz</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="co">## O - output to stdout, not to disk</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="fu">tar</span> <span class="at">-Oxvzf</span> ../data/practice.tar.gz <span class="op">&gt;</span> practice.out</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Work on zipping and concatenation</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">## k - keep the original file after compression</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gzip</span> <span class="at">-k</span> ../data/practice.out </span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">## unzip the archive</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="fu">gunzip</span> ../data/practice.out.tar.gz</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co">## important: you can filter on the information within each file of the archive</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">## when using output to stdout</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="fu">tar</span> <span class="at">-Oxvzf</span> ../data/practice.tar.gz <span class="kw">|</span> <span class="fu">grep</span> <span class="st">"PRCR"</span> <span class="kw">|</span> <span class="fu">gzip</span> <span class="op">&gt;</span> ../data/practice2.out.gz</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Add new file as a rule to Snakefile - scripts/8_split_ghcnd_all.sh</p>
+<p>Modify the code to read the concatenated file - scripts/7_read_dly_files_all.qmd - 4th portion of the script</p>
+</section>
+<section id="b.-chunk-input-data-using-split-function" class="level3">
+<h3 class="anchored" data-anchor-id="b.-chunk-input-data-using-split-function">10.B. chunk input data using “split” function</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">split</span> <span class="at">--help</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">## most commonly used: --bytes, --lines, --number</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">## split the archive into 40 chunks -&gt; one chunk unzipped ~ 0.75 GB; zipped ~ 84 MB</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">## all file names start with "x"</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu">split</span> <span class="at">-n</span> 40 ../data/ghcnd_all.tar.gz</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="ex">ll</span> x<span class="pp">*</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="fu">wc</span> <span class="at">-l</span> x<span class="pp">*</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">## split the archive into chunks of 40 * 10^6 bytes -&gt; 88 files of 39 MB each</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="fu">split</span> <span class="at">-b</span> 40000000 ../data/ghcnd_all.tar.gz</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co">## if you have an unzipped file, you can split it by nr of lines</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">## split into 123 files of 1000 lines each</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="fu">split</span> <span class="at">-l</span> 1000 ../data/ghcnd_all/ghcnd_all.txt</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="fu">ls</span> x<span class="pp">*</span> <span class="kw">|</span> <span class="fu">wc</span> <span class="at">-l</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<p>Modify scripts/8_concatenate_dly.sh Convert script 7 to scripts/9_read_split_dly_files_all.qmd to see if it works on a chunked file. Remove the useless PRCP filters and element removal column.</p>
+<p>When running script 9, we observe that some of the rows in the new dataframe have 0 in the ‘prcp’ column (= no precipitation). Since we need only that info, we can remove those rows directly to reduce size even further.</p>
+<table class="table">
+<tbody>
+<tr class="odd">
+<td>ASN00027001</td>
+<td>1913-12-01</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>ASN00027001</td>
+<td>1913-12-02</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td>ASN00027001</td>
+<td>1913-12-03</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p>Remove the rows with 0 in the ‘prcp’ column.</p>
+<p>Add new file as a rule to Snakefile - scripts/8_split_ghcnd_all.sh</p>
+<p>At the end, one of the 36 split files has ~ 5 mil rows -&gt; ~ 209 mil rows in total after concatenation.</p>
+</section>
+<section id="c-remove-useless-data" class="level3">
+<h3 class="anchored" data-anchor-id="c-remove-useless-data">10.C remove useless data</h3>
+<p>In this case, remove data that is outside your area of interest, in this case outside your time window.</p>
+<ul>
+<li>scripts/9_read_split_dly_files_all.qmd</li>
+</ul>
+<p>Transform the date into Julian date (meaning each day is given a number between 1 and 365/ 366) to make it easier to establish time windows and filters.</p>
+<p>Add indicator column if date in window, add “year” column to be able to fix the year indication by adding 1 if date is in window but different year.</p>
+<p>The size of the output file is quite small. To test if this is enough for GitHub Actions (i.e.&nbsp;small enough to run all split files through with piece of code from script 9), convert the code into function and apply it to all split files.</p>
+<p>Important: For the Snakemake pipeline to run an R script, you need to add the shebang line at the top and make it /executable</p>
+<p>HOW TO RUN A QUARTO FROM SNAKEMAKE?</p>
+<p>Convert from Quarto to R and make it executable</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Rscript</span> <span class="at">-e</span> <span class="st">"library(knitr); knitr::purl('9_read_split_dly_files_all.qmd', documentation =2)"</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">chmod</span> +x 9_read_split_dly_files_all.qmd</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<ul>
+<li>script/9_read_split_dly_files_all.R</li>
+</ul>
+<p>Add info to 8_concatenate_dly.sh (last addition)</p>
+<p>Modify the Snakefile; delete the rule “concatenate_dly_files” and replace it with “summarize_dly_files”</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">snakemake</span> <span class="at">--dag</span>  <span class="kw">|</span> <span class="ex">dot</span> <span class="at">-Tpng</span> <span class="op">&gt;</span> results/3_dag_stage_all.png</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</section>
+</section>
+<section id="cleanup" class="level2">
+<h2 class="anchored" data-anchor-id="cleanup">11. cleanup</h2>
+<p>Make a copy of only the necessary files and keep them in ‘scripts’. All the scripts are put in ‘learn_scripts’ to be able to follow the tutorial again.</p>
+</section>
+<section id="further-data-summarization" class="level2">
+<h2 class="anchored" data-anchor-id="further-data-summarization">12. further data summarization</h2>
+<p>Since the goal is to create a global map with precipitations on it, we could merge the data from weather stations that are close to each other. Either:</p>
+<ul>
+<li><p>calculate distance between each weather station, cluster them and get the average amount of precipitation over the window time in each cluster.</p></li>
+<li><p>or get the latitude and longitude of each of the weather stations, round them and then pool the values from the stations that are within the same latitude and longitude.</p></li>
+</ul>
+<p>We will go with option 2:</p>
+<section id="a.-rounding-in-r" class="level3">
+<h3 class="anchored" data-anchor-id="a.-rounding-in-r">12.A. Rounding in R</h3>
+<ul>
+<li><p>a floating point number = double - number with decimals</p></li>
+<li><p>scripts/10_rounding_in_R.qmd - to see various ways to round numbers in R</p></li>
+<li><p>load the “ghcnd-stations.txt” to get coordinates and to figure how to proceed. The file is another fixed width formatted file, but now load it in a different way than in scripts 7/9. Round the numbers, group and count. Make R scripts executable, add shebang line. Change the Snakemake file, adding rule “aggregate_regions”.</p></li>
+</ul>
+</section>
+<section id="b.-merge-precipitation-and-location" class="level3">
+<h3 class="anchored" data-anchor-id="b.-merge-precipitation-and-location">12.B. Merge precipitation and location</h3>
+</section>
+</section>
+</section>
+<section id="todo" class="level1">
+<h1>Todo:</h1>
+<p>[ ] at the end, recreate the env.yaml file from the env to preserve the library versions</p>
+<p>[x] test script 4, if it needs {} - no, it does not need them - https://stackoverflow.com/questions/8748831/when-do-we-need-curly-braces-around-shell-variables - https://nickjanetakis.com/blog/why-you-should-put-braces-around-your-variables-when-shell-scripting</p>
+<p>[x] test script 5 to see if it works</p>
+<p>[x] install “graphviz” in env and add it to the yaml file</p>
+</section>
+<section id="ideas-skip" class="level1">
+<h1>Ideas skip</h1>
+<ul class="task-list">
+<li><label><input type="checkbox">run R quarto in VSCode terminal</label></li>
+<li><label><input type="checkbox">error it is taking the path hardcoded - how to just load it from the conda env?</label></li>
+<li><label><input type="checkbox">how to run Quarto script from snakemake</label></li>
+</ul>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -6,7 +6,8 @@ rule all:
         "data/6_ghcnd_all_files.txt",
         "data/9_ghcnd_tidy.tsv.gz",
         "data/11_ghcnd_regions_years.tsv",
-        "results/5_world_drought.png"
+        "results/5_world_drought.png",
+        "index.html"
 
 rule get_all_archive:
     input:
@@ -87,4 +88,15 @@ rule drought_by_region:
     shell:
         """
         {input.r_script} 
+        """
+
+rule render_index:
+    input:
+        qmd_script = "index.qmd",
+        png = "results/5_world_drought.png"
+    output:
+        "index.html"
+    shell:
+        """
+        quarto render {input.qmd_script} --to html
         """

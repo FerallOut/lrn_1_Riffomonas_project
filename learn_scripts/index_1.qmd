@@ -1,0 +1,11 @@
+---
+title: Drought index for world
+author: MB
+output: html_document
+email_address: X
+github_repo: https://github.com/FerallOut/lrn_1_Riffomonas_project
+---
+
+
+## insert static image of the output
+![](results/5_world_drought.png)
