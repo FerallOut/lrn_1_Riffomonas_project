@@ -14,8 +14,6 @@ rule get_all_archive:
         script = "scripts/4_get_ghcnd_data.sh"
     output:
         archive = "data/ghcnd_all.tar.gz"
-    conda:
-        "envs/smk_env1.yaml" 
     params:
         file = "ghcnd_all.tar.gz"
     shell:
@@ -29,8 +27,6 @@ rule get_all_file_names:
         archive = "data/ghcnd_all.tar.gz"
     output:
         file = "data/6_ghcnd_all_files.txt"
-    conda:
-        "envs/smk_env1.yaml"     
     shell:
         """
         {input.script} 
@@ -41,8 +37,6 @@ rule get_inventory:
         script = "scripts/4_get_ghcnd_data.sh"
     output:
         inventory = "data/ghcnd-inventory.txt"
-    conda:
-        "envs/smk_env1.yaml" 
     params:
         file = "ghcnd-inventory.txt"
     shell:
@@ -54,8 +48,6 @@ rule get_station_data:
         script = "scripts/4_get_ghcnd_data.sh",
     output:
         data = "data/ghcnd-stations.txt"
-    conda:
-        "envs/smk_env1.yaml" 
     params:
         file = "ghcnd-stations.txt"
     shell:
@@ -70,8 +62,6 @@ rule summarize_dly_files:
         tarball = "data/ghcnd_all.tar.gz"
     output:
         file = "data/9_ghcnd_tidy.tsv.gz"
-    conda:
-        "envs/smk_env1.yaml" 
     shell:
         """
         {input.bash_script}
@@ -83,8 +73,6 @@ rule get_regions_years:
         file = "data/ghcnd-inventory.txt"
     output:
         file = "data/11_ghcnd_regions_years.tsv"
-    conda:
-        "envs/smk_env1.yaml" 
     shell:
         """
         {input.r_script} 
@@ -97,8 +85,6 @@ rule drought_by_region:
         region_data = "data/11_ghcnd_regions_years.tsv"
     output:
         file = "results/5_world_drought.png"
-    conda:
-        "envs/smk_env1.yaml" 
     shell:
         """
         {input.r_script} 
@@ -110,8 +96,6 @@ rule render_index:
         png = "results/5_world_drought.png"
     output:
         "index.html"
-    conda:
-        "envs/smk_env1.yaml" 
     shell:
         """
         quarto render {input.qmd_script} --to html
