@@ -549,13 +549,14 @@ https://docs.github.com/en/actions/get-started/quickstart
   - press on "FerallOut is testing out GitHub Actions" > "Explore-GitHub-Actions" to see the different steps that were run
 
 - back to ".github/workflows/run-pipeline.yml" file:
-1. what each term means:
+
+What each term means:
   - ${{ github.actor }} - variable that inserts your GitHub name (no need to change)
   - "on: push" - if you make a commit and push on this GitHub repo, the website will automatically run this Action
   - "jobs" - what kind of jobs you want on this repo; current just one: "Explore-GitHub-Actions"
   - "runs-on" - the type of computer you want the Action to run on (= the runner); think of it as an HPC that in this case runs latest Ubuntu
   - "steps" - 
-    - "${{ github.event_name }}" - the action, in this case "push"
+    - "${{ github.event_name }}" - the action, in this case "push" = every time you make an active change to the website = manual start! (see 14.C. for automatic)
     - "${{ runner.os }}" - the os, in this case "latest-ubuntu"
     - "${{ github.ref }}" - the branch, in this case "main"
     - "${{ github.repository }}" - repo name
@@ -563,7 +564,7 @@ https://docs.github.com/en/actions/get-started/quickstart
     - "${{ github.workspace }}" - lists all files in the repo/ workspace (e.g. Snakemake, index, README, code/, results/, etc)
     - "${{ github.status }}" - outputs the status of the job, if it is successful or not 
 
- 2. modify it to suit your analysis
+### 14.B. modify the yml to suit your analysis
   - after the " workspace " rule, add:
     A. test by adding a "pwd" command to see what is the working directory
      "- name: Get working directory
@@ -589,17 +590,43 @@ https://docs.github.com/en/actions/get-started/quickstart
     
     - if you save and commit, then GitHub Actions will take some time to fail. It will run the pipeline through data download, and fail when it hits the R scripts that need specific libraries to run.
 
-    - go back to the Snakemake file and add "conda" directives, pointing it to our env yaml.
+    - go back to the Snakemake file and add "conda" directives to each rule, pointing it to our env yaml.
+      - in theory, if you use one large conda env, then you can add the directive only once (WHERE? HOW?), but this gives you the opportunity to also use separate environments.
 
   C. run the Snakemake workflow
+    - the run happens automatically in the background, as soon as you commit and push changes to the repo
 
   D. commit any changes that occur because we ran the output (e.g. the final plot output)
+    - go back to the ".github/workflows/run_pipeline.yml" to add a few changes
+      ```bash
+      - name: Configure-git-on-runner
+        run: |
+          git config --local user.email "noreply@github.com"
+          git config --local user.name "GitHub"
+      - name: Commit-changes-to-repo
+        run: |
+          git add results/5_world_drought.png index.html
+          git commit -m "new day's rendering"
+          git push origin main
+      ```
 
+### 14. C. make the action run automatically
+Schedule it as a cron job: crontab.guru
 
-### 14.B. 
+Cron runs on UTC time (for me: local - 2h)
 
+If you want your job to run at 05:15 local -> 03:15 UTC time
 
+  - in the ".github/workflows/run_pipeline.yml" change the "on: [push]" line:
+    ```bash
+    on:
+      # push:
+      schedule:
+        - cron: '3 15 * * *'
+    ```
 
+### 14.D. delete the files expected as output
+In my case "results/5_world_drought.png" and "index.html" because sometimes, if GitHub Action fails while developing a pipeline, it might get stuck saying that the pipeline keeps failing. So force the run by deleting the final output files before the 1st stable run.
 
 
 
@@ -624,5 +651,8 @@ https://docs.github.com/en/actions/get-started/quickstart
 
 # Ideas skip
 - [ ] run R quarto in VSCode terminal
-- [ ] error it is taking the path hardcoded - how to just load it from the conda env?
+  - [ ] error it is taking the path hardcoded - how to just load it from the conda env?
+
 - [x] how to run Quarto script from snakemake
+- [ ] how to add the conda directive only once for snakemake?
+- [ ] add a "First Interaction" on the GitHub Action website
