@@ -18,7 +18,6 @@ jobs:
       - name: Get working directory
         run: |
           pwd
-      - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Snakemake-workflow
         uses: snakemake/snakemake-github-action@v2
         with:
@@ -27,3 +26,13 @@ jobs:
           args: '--cores 1 --sdm conda --conda-cleanup-pkgs cache'
           stagein: '' # additional preliminary commands to run (can be multiline)
           show-disk-usage-on-error: true
+      - name: Configure-git-on-runner
+        run: |
+          git config --local user.email "noreply@github.com"
+          git config --local user.name "GitHub"
+      - name: Commit-changes-to-repo
+        run: |
+          git add results/5_world_drought.png index.html
+          git commit -m "new day's rendering"
+          git push origin main
+      - run: echo "🍏 This job's status is ${{ job.status }}."
