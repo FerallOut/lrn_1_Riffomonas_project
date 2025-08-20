@@ -3,9 +3,10 @@
 This project is to create a snakemake worflow that is then deployed using GitHub Actions.
 
 The available hardware specs for Linux virtual machines are:
-- 2 core CPUs
-- 7 GB RAM
-- 14 GB of SSD space
+https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job#standard-github-hosted-runners-for-public-repositories
+- 4 processors/cores (CPUs)
+- 16 GB memory (RAM)
+- 14 GB of storage (SSD space)
 
 Therefore some parts of the pipeline can be used for other use cases, as long as you then remove the constraints.
 The projects starts by addressing the space constraints (2-9), then RAM constraints (10), and then the cores.
@@ -557,7 +558,7 @@ What each term means:
   - "runs-on" - the type of computer you want the Action to run on (= the runner); think of it as an HPC that in this case runs latest Ubuntu
   - "steps" - 
     - "${{ github.event_name }}" - the action, in this case "push" = every time you make an active change to the website = manual start! (see 14.C. for automatic)
-    - "${{ runner.os }}" - the os, in this case "latest-ubuntu"
+    - "${{ runner.os }}" - the os, in this case "latest-ubuntu": https://github.com/actions/runner-images
     - "${{ github.ref }}" - the branch, in this case "main"
     - "${{ github.repository }}" - repo name
     - "actions/checkout@v3" - a copy of your repo is copied/ checked out to the remote computer you want to use (~ clonning the repo)
@@ -621,6 +622,8 @@ If you want your job to run at 05:15 local -> 03:15 UTC time
     ```bash
     on:
       # push:
+        # branches: main
+        
       schedule:
         - cron: '3 15 * * *'
     ```
@@ -629,7 +632,36 @@ If you want your job to run at 05:15 local -> 03:15 UTC time
 In my case "results/5_world_drought.png" and "index.html" because sometimes, if GitHub Action fails while developing a pipeline, it might get stuck saying that the pipeline keeps failing. So force the run by deleting the final output files before the 1st stable run.
 
 ## 15. summarize so far
-- I kept getting errors with GitHub Actions, saying it runs out of memory - I decreased the number of lines read in one file to 250.000 for 500.000 ("scripts/8_concatenate_dly.sh) and added a cleanup action in "scripts/4_get_ghcnd_data.sh"
+- [x] I kept getting errors with GitHub Actions, saying it runs out of memory - I decreased the number of lines read in one file to 250.000 for 500.000 ("scripts/8_concatenate_dly.sh) and added a cleanup action in "scripts/4_get_ghcnd_data.sh"
+- [ ] do random sampling on the split files to get about 75% of them
+
+## 16. Use git rebase to squash commits
+- check your commits: on git website of the repo, upper right corner under the CODE button, a clock with number of commits
+  - you can see that there are multiple commits that could be squashed into singular commits to make the history easier to follow.
+  - to see what each commit contains: 
+    - go to the <> symbol of each of them -> see how the files looked like at that stage of commit
+    - press on the number next to it to see the exact line change in each file for that commit (default Split - gear icon upper right > Unite) 
+
+- once you have chosen which commits to squash:
+  
+  ```bash
+  ## activate env
+  conda activate env_tar/smk_env1/
+  git status
+  
+  ## which commits - you need the commit hashes
+  git log 
+  ##or
+  git log --oneline
+     #10 582b864 updated index clean
+     #11 f9492c2 update code before GitHub Actions
+     #12 22416f4 created index for webpage
+     #13 e931786 first html iteration
+     #14 8edc56f generate visual of drought across the world
+
+  ## squash commits
+  git rebase -i 8edc56f
+  ```
 
 
 
@@ -656,4 +688,29 @@ In my case "results/5_world_drought.png" and "index.html" because sometimes, if 
 
 - [x] how to run Quarto script from snakemake
 - [ ] how to add the conda directive only once for snakemake?
+  - possible: https://github.com/actions/runner-images/issues/9494
+    ```bash
+      env:
+        RENV_PATHS_ROOT: ~/.local/share/renv
+    ```
 - [ ] add a "First Interaction" on the GitHub Action website
+- [ ] try self-hosted runners? 
+https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job#standard-github-hosted-runners-for-public-repositories
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
