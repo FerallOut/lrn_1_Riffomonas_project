@@ -660,7 +660,22 @@ In my case "results/5_world_drought.png" and "index.html" because sometimes, if 
      #14 8edc56f generate visual of drought across the world
 
   ## squash commits
+  ## open editor:
   git rebase -i 8edc56f
+  ## modify from "pick" to "squash" only the commits you want merged into the current one:
+     #pick 5091f26 Create run_pipeline.yml for GitHub Actions
+     #pick 582b864 updated index clean
+     #pick f9492c2 update code before GitHub Actions
+     #pick 22416f4 created index for webpage
+     #pick e931786 first html iteration
+     #pick 8edc56f generate visual of drought across the world
+     
+     #pick   5091f26 Create run_pipeline.yml for GitHub Actions
+     #squash 582b864 updated index clean
+     #squash f9492c2 update code before GitHub Actions
+     #squash 22416f4 created index for webpage
+     #squash e931786 first html iteration
+     #squash 8edc56f generate visual of drought across the world
   ```
 
 
