@@ -7,5 +7,5 @@
 
 echo "list all files"
 echo "file_name" > data/6_ghcnd_all_files.txt
-tar -xvzf data/ghcnd_all.tar.gz | grep ".dly" >> data/6_ghcnd_all_files.txt
+tar -tf data/ghcnd_all.tar.gz | grep ".dly" >> data/6_ghcnd_all_files.txt
 echo "all files listed"

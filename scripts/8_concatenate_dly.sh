@@ -16,7 +16,7 @@
 mkdir -p data/temp
 tar -Oxvzf data/ghcnd_all.tar.gz | \
     grep "PRCP" | \
-    split -l 500000 --filter 'gzip > data/temp/$FILE.gz'
+    split -l 250000 --filter 'gzip > data/temp/$FILE.gz'
 
 
 ## call script 9_read_split_dly_files_all.R 

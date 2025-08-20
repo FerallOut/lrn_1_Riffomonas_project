@@ -628,7 +628,8 @@ If you want your job to run at 05:15 local -> 03:15 UTC time
 ### 14.D. delete the files expected as output
 In my case "results/5_world_drought.png" and "index.html" because sometimes, if GitHub Action fails while developing a pipeline, it might get stuck saying that the pipeline keeps failing. So force the run by deleting the final output files before the 1st stable run.
 
-
+## 15. summarize so far
+- I kept getting errors with GitHub Actions, saying it runs out of memory - I decreased the number of lines read in one file to 250.000 for 500.000 ("scripts/8_concatenate_dly.sh) and added a cleanup action in "scripts/4_get_ghcnd_data.sh"
 
 
 
