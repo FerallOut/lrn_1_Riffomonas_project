@@ -539,12 +539,188 @@ Mostly work on the Github website.
 ### 14.A. website exploration
 Github has a Github Actions quickstart tutorial:
 https://docs.github.com/en/actions/get-started/quickstart
+<<<<<<< HEAD
+=======
 
 - create ".github/workflows/github-actions-demo.yml" using the website (it should work with CLI as well?)
   - "Add file" > ".github" > "workflows" > "run_pipeline.yml" 
 - in the file paste the contents from the quicktutorial YAML content
 - commit the file  
 
+- press "Actions" button on top of the page
+  - you can see that the website ran and checked the yml script
+  - press on "FerallOut is testing out GitHub Actions" > "Explore-GitHub-Actions" to see the different steps that were run
+
+- back to ".github/workflows/run-pipeline.yml" file:
+
+What each term means:
+  - ${{ github.actor }} - variable that inserts your GitHub name (no need to change)
+  - "on: push" - if you make a commit and push on this GitHub repo, the website will automatically run this Action
+  - "jobs" - what kind of jobs you want on this repo; current just one: "Explore-GitHub-Actions"
+  - "runs-on" - the type of computer you want the Action to run on (= the runner); think of it as an HPC that in this case runs latest Ubuntu
+  - "steps" - 
+    - "${{ github.event_name }}" - the action, in this case "push" = every time you make an active change to the website = manual start! (see 14.C. for automatic)
+    - "${{ runner.os }}" - the os, in this case "latest-ubuntu": https://github.com/actions/runner-images
+    - "${{ github.ref }}" - the branch, in this case "main"
+    - "${{ github.repository }}" - repo name
+    - "actions/checkout@v3" - a copy of your repo is copied/ checked out to the remote computer you want to use (~ clonning the repo)
+    - "${{ github.workspace }}" - lists all files in the repo/ workspace (e.g. Snakemake, index, README, code/, results/, etc)
+    - "${{ github.status }}" - outputs the status of the job, if it is successful or not 
+
+### 14.B. modify the yml to suit your analysis
+  - after the " workspace " rule, add:
+    A. test by adding a "pwd" command to see what is the working directory
+     "- name: Get working directory
+          run: |
+            pwd" 
+
+    - commit the change, then go back to Actions to see how GitHub checks the changes and runs Actions on your repo
+      - "Actions" > click on the one you want, e.g. Demo #2 > "Explore-GitHub-Actions" > check on your new rule e.g. "Get working directory"
+    - now replace this rule and add more:
+
+  B. set up the env to have the correct software
+    - we have a conda env with all needed tools
+    - but for GitHub Actions, first install Snakemake, and then using it, you install conda, because using the Snakemake file, you can create separate environments for each rule
+      - go to the quickstart tutorial and copy the "Testing" rule: https://github.com/snakemake/snakemake-github-action
+      - paste it into the yml file you created on github (.github/workflows/run_pipeline.yml) and modify it
+        - change name at the top from "GitHub Actions Demo" to: "Run Drought Index Workflow"   
+        - change name of the job from "Explore-GitHub-Actions:" to "Run-Drought-Index-Workflow:"
+        - in the piece of code you pasted, change: 
+          - name from "Testing" to "Snakemake-workflow"
+          - directory from ".test" to "."
+          - snakefile location and name from 'workflow/Snakefile' to "Snakefile"
+        - don't change the snakemake name since ours is also called "Snakefile", nor the number of cores since the pipeline was developed with 1 core in mind
+    
+    - if you save and commit, then GitHub Actions will take some time to fail. It will run the pipeline through data download, and fail when it hits the R scripts that need specific libraries to run.
+
+    - go back to the Snakemake file and add "conda" directives to each rule, pointing it to our env yaml.
+      - in theory, if you use one large conda env, then you can add the directive only once (WHERE? HOW?), but this gives you the opportunity to also use separate environments.
+
+  C. run the Snakemake workflow
+    - the run happens automatically in the background, as soon as you commit and push changes to the repo
+
+  D. commit any changes that occur because we ran the output (e.g. the final plot output)
+    - go back to the ".github/workflows/run_pipeline.yml" to add a few changes
+      ```bash
+      - name: Configure-git-on-runner
+        run: |
+          git config --local user.email "noreply@github.com"
+          git config --local user.name "GitHub"
+      - name: Commit-changes-to-repo
+        run: |
+          git add results/5_world_drought.png index.html
+          git commit -m "new day's rendering"
+          git push origin main
+      ```
+
+### 14. C. make the action run automatically
+Schedule it as a cron job: crontab.guru
+
+Cron runs on UTC time (for me: local - 2h)
+
+If you want your job to run at 05:15 local -> 03:15 UTC time
+
+  - in the ".github/workflows/run_pipeline.yml" change the "on: [push]" line:
+    ```bash
+    on:
+      # push:
+        # branches: main
+        
+      schedule:
+        - cron: '3 15 * * *'
+    ```
+
+### 14.D. delete the files expected as output
+In my case "results/5_world_drought.png" and "index.html" because sometimes, if GitHub Action fails while developing a pipeline, it might get stuck saying that the pipeline keeps failing. So force the run by deleting the final output files before the 1st stable run.
+
+## 15. summarize so far
+- [x] I kept getting errors with GitHub Actions, saying it runs out of memory - I decreased the number of lines read in one file to 250.000 for 500.000 ("scripts/8_concatenate_dly.sh) and added a cleanup action in "scripts/4_get_ghcnd_data.sh"
+- [ ] do random sampling on the split files to get about 75% of them
+
+## 16. Use git rebase to squash commits
+- check your commits: on git website of the repo, upper right corner under the CODE button, a clock with number of commits
+  - you can see that there are multiple commits that could be squashed into singular commits to make the history easier to follow.
+  - to see what each commit contains: 
+    - go to the <> symbol of each of them -> see how the files looked like at that stage of commit
+    - press on the number next to it to see the exact line change in each file for that commit (default Split - gear icon upper right > Unite) 
+
+- once you have chosen which commits to squash:
+  
+  ```bash
+  ## activate env
+  conda activate env_tar/smk_env1/
+  git status
+  
+  ## which commits - you need the commit hashes
+  git log 
+  ##or
+  git log --oneline
+     #10 582b864 updated index clean
+     #11 f9492c2 update code before GitHub Actions
+     #12 22416f4 created index for webpage
+     #13 e931786 first html iteration
+     #14 8edc56f generate visual of drought across the world
+
+  ## squash commits
+  ## open in editor the commit under which you want to merge the others:
+  git rebase -i 8edc56f
+     # ...
+     #pick 5091f26 Create run_pipeline.yml for GitHub Actions
+     #pick 582b864 updated index clean
+     #pick f9492c2 update code before GitHub Actions
+     #pick 22416f4 created index for webpage
+     #pick e931786 first html iteration
+     #pick 8edc56f generate visual of drought across the world
+     # ...
+
+  ## modify from "pick" to "squash" only the commits you want merged into the current one:
+     # ...
+     #pick   5091f26 Create run_pipeline.yml for GitHub Actions
+     #squash 582b864 updated index clean
+     #squash f9492c2 update code before GitHub Actions
+     #squash 22416f4 created index for webpage
+     #squash e931786 first html iteration
+     #squash 8edc56f generate visual of drought across the world
+     # ...
+
+  ## save and close editor, 
+  ## then replace/ merge the commit messages into one message: 
+  ## e.g. "created index for webpage"
+  #git rebase --continue
+  #git rebase --edit-todo
+
+  ## git log --oneline
+     #11 f62ccbe Create run_pipeline.yml for GitHub Actions
+     #12 a52bd4c created index for webpage
+     #13 8edc56f generate visual of drought across the world
+```
+
+- second rebase
+
+```bash
+git log --oneline
+     # 2 5f167ae update notes
+     # 3 50b4f08 lower line requirement in 8_concatenate_dly.sh to prevent GitHub Action crash
+     # 4 2d1f04d remove final files
+     # 5 d1cd10f Specify time to run daily workflow in  run_pipeline.yml
+     # 6 28c8789 Update run_pipeline.yml
+     # 7 440f406 Add git config and commit/push to run_pipeline.yml
+     # 8 1273670 add conda directive to each rule
+     # 9 5a03e60 Customized  run_pipeline.yml to include snakemake
+     #10 b752931 Update run_pipeline.yml to get pwd
+     #11 f62ccbe Create run_pipeline.yml for GitHub Actions
+     #12 a52bd4c created index for webpage
+     #13 8edc56f generate visual of drought across the world
+
+git rebase -i 8edc56f
+>>>>>>> bf7540a87bdd5375d0b2b64738016737b6efe9cf
+
+- create ".github/workflows/github-actions-demo.yml" using the website (it should work with CLI as well?)
+  - "Add file" > ".github" > "workflows" > "run_pipeline.yml" 
+- in the file paste the contents from the quicktutorial YAML content
+- commit the file  
+
+<<<<<<< HEAD
 - press "Actions" button on top of the page
   - you can see that the website ran and checked the yml script
   - press on "FerallOut is testing out GitHub Actions" > "Explore-GitHub-Actions" to see the different steps that were run
