@@ -660,24 +660,60 @@ In my case "results/5_world_drought.png" and "index.html" because sometimes, if 
      #14 8edc56f generate visual of drought across the world
 
   ## squash commits
-  ## open editor:
+  ## open in editor the commit under which you want to merge the others:
   git rebase -i 8edc56f
-  ## modify from "pick" to "squash" only the commits you want merged into the current one:
+     # ...
      #pick 5091f26 Create run_pipeline.yml for GitHub Actions
      #pick 582b864 updated index clean
      #pick f9492c2 update code before GitHub Actions
      #pick 22416f4 created index for webpage
      #pick e931786 first html iteration
      #pick 8edc56f generate visual of drought across the world
-     
+     # ...
+
+  ## modify from "pick" to "squash" only the commits you want merged into the current one:
+     # ...
      #pick   5091f26 Create run_pipeline.yml for GitHub Actions
      #squash 582b864 updated index clean
      #squash f9492c2 update code before GitHub Actions
      #squash 22416f4 created index for webpage
      #squash e931786 first html iteration
      #squash 8edc56f generate visual of drought across the world
-  ```
+     # ...
 
+  ## save and close editor, 
+  ## then replace/ merge the commit messages into one message: 
+  ## e.g. "created index for webpage"
+  #git rebase --continue
+  #git rebase --edit-todo
+
+  ## git log --oneline
+     #11 f62ccbe Create run_pipeline.yml for GitHub Actions
+     #12 a52bd4c created index for webpage
+     #13 8edc56f generate visual of drought across the world
+```
+
+- second rebase
+
+```bash
+git log --oneline
+     # 2 5f167ae update notes
+     # 3 50b4f08 lower line requirement in 8_concatenate_dly.sh to prevent GitHub Action crash
+     # 4 2d1f04d remove final files
+     # 5 d1cd10f Specify time to run daily workflow in  run_pipeline.yml
+     # 6 28c8789 Update run_pipeline.yml
+     # 7 440f406 Add git config and commit/push to run_pipeline.yml
+     # 8 1273670 add conda directive to each rule
+     # 9 5a03e60 Customized  run_pipeline.yml to include snakemake
+     #10 b752931 Update run_pipeline.yml to get pwd
+     #11 f62ccbe Create run_pipeline.yml for GitHub Actions
+     #12 a52bd4c created index for webpage
+     #13 8edc56f generate visual of drought across the world
+
+git rebase -i 8edc56f
+
+
+```
 
 
 
