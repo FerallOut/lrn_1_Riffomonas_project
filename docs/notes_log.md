@@ -710,9 +710,10 @@ git log --oneline
      #12 a52bd4c created index for webpage
      #13 8edc56f generate visual of drought across the world
 
-git rebase -i 8edc56f
-
-
+git rebase -i a52bd4c
+# squash from to 11 to 4
+# new commit message: "Create GitHub Actions workflow to run Snakemake pipeline"
+git log --oneline
 ```
 
 
